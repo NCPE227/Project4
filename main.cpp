@@ -23,7 +23,7 @@ void setVar(vector<string> tokens);
 void doRun(vector<string> tokens, int choice);
 void doFly(vector<string> tokens);
 void dotoVar(vector<string> tokens);
-bool errorCheck(vector<string> tokens, int args);
+bool errorCheck(vector<string> tokens, int wanted);
 void showProcesses(vector<string> tokens);
 void done(vector<string> tokens);
 int setdir(vector<string> tokens);
@@ -137,10 +137,190 @@ void showProcesses(vector<string> tokens)
     printf("PROC: %s", str.c_str());
   }
 }
- 
-        
+
+//choice(0) = run, choice(1) = fly, choice(2) = toVar
+void doRun(vector<string> tokens, int choice)
+{
+  if (choice == 0)
+  {
+    if (tokens.size() < 2)
+    {
+      errorCheck(tokens, 2);
+      return;
+    }
+  }
+  for (int i = 0; i < tokens.size(); i++)
+  {
+    if (tokens[i].substr(0, 1) == "^")
+    {
+      tokens[i] = variables.find(tokens[i].substr(1))->second;
+    }
+  }
+  
+  char* arg[tokens.size()];
+  string path = variables.find("PATH")->second;
+  
+  int sizeDif = 1;
+  if (choice == 3)
+  {
+    sizeDif = 2;
+  }
+  for(int i = sizeDif; i < tokens.size(); i++)
+  {
+    arg[i-sizeDif] = const_cast<char*>(tokens[i].c_str());
+  }
+  arg[tokens.size() - sizeDif] = NULL;
+  
+  int pid = fork();
+  int fork1 = pid;
+  
+  if (pid == 0 && choice == 1)
+  {
+    pid = fork();
+  }
+  
+  if (pid == 0)
+  {
+    if (choice == 3)
+    {
+      variabless[tokens[1]] = execvp(arg[0], arg);
+    }
+    else
+    {
+      execvp(arg[0], arg);
+    }
+    fprintf(stderr, "Execv did not work \n");
+		exit(1);
+  }
+  
+  if (pid != fork1 && choice == 1)
+  {
+    waitpid(pid, NULL, 0); 
+		string argsString = args[0];
+		for (int i = 1; i < (tokens.size() - 1); i++) 
+    {
+			argsString = argsString + " " + args[i];
+		}
+    exit(1)
+  }
+  
+  if(which == 0) {
+		waitpid(pid, NULL, 0);
+	}
+}
+      
+void doFly(vector<string> tokens)
+{
+  doRun(tokens, 1);
+}
+      
+void dotoVar(vector<string> tokens)
+{
+  doRun(tokens, 3);
+}
+      
+void setVar(vector<string> tokens)
+{
+  if (errorCheck(tokens, 3)
+      return;
+  string var = tokens[1];
+      
+  //if first character in var isn't a letter
+  for (int i = 1; i < variable.length(); i++) 
+  {
+		if (isalpha(var[i]) || isdigit(var[i])) 
+    {
+		}
+		else
+    {
+			fprintf(stderr,"Variable names must only consist of letters and numbers.\n");
+			return;
+		}
+  }
+  
+  string val = tokens[2];
+	if (var == "ShowTokens") {
+		showtokens = value;
+	}
+	else
+		variables[var] = val;
+}
+      
+int setdir(vector<string> tokens)
+{
+  if (errorCheck(tokens, 2))
+  {
+		return -1;
+	}
+	int code = chdir(tokens[1].c_str());
+	if (code != 0) 
+  {
+		fprintf(stderr, "%s: No such directory\n", tokens[1].c_str());
+		return -1;
+	}
+	return 0;
+}
+      
+//returns true if there's an error relating to num of tokens
+bool errorCheck(vector<string> tokens, int wanted) 
+{
+	if (tokens.size() > wanted)
+  {
+		if (tokens[wanted] != "#")
+    {
+			fprintf(stderr,"Too many arguements for %s\n", tokens[0].c_str());
+			return true;
+		}
+	}
+	if (tokens.size() < wanted)
+  {
+		fprintf(stderr,"Too few arguements for %s\n", tokens[0].c_str());
+		return true;
+	}
+	for (int i = 1; i < wanted; i++)
+  {
+		if (tokens[i]=="#")
+    {
+			fprintf(stderr, "Too few arguements for %s\n", tokens[0].c_str());
+			return true;
+		}
+	}
+	return false;
+}
+      
+void changeprompt(vector<string> tokens)
+{
+	if (errorchecker(tokens, 2))
+  {
+		return;
+	}
+	prompt = tokens[1];
+}
+      
 int main()
 {
+  variables["PATH"] = "/bin:/usr/bin";
+	string cmd;
+	vector<string> parameters;
+	
+  while (true) 
+  {
+		cout << prompt;
+		getline(cin, cmd);
+		vector<string> tokens = createtokens(cmd);
+		execute(tokens);
+		if (quitVar > -1)
+    {
+			return quitVar;
+		}
+		if (showtokens == "1")
+    {
+			for (auto& str : tokens)
+      {
+				cout << str << endl;
+      }
+    }
+	}
   
   return -1; //shouldn't be called, will produce an error if it is
 }
