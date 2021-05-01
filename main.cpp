@@ -16,27 +16,16 @@
 
 using namespace std;
 
-void execute(vector<string> tokens);
-vector<string> createToken(string str);
-void changePrompt(vector<string> tokens);
-void setVar(vector<string> tokens);
-void doRun(vector<string> tokens, int choice);
-void doFly(vector<string> tokens);
-void dotoVar(vector<string> tokens);
-bool errorCheck(vector<string> tokens, int wanted);
-void showProcesses(vector<string> tokens);
-void done(vector<string> tokens);
-int setdir(vector<string> tokens);
 
 string showToken = "0";
-map<string, string> var; //map<name,value>
+map<string, string> variables; //map<name,value>
 string prompt = "shell > ";
 vector<string> processes; //background processes
 int quitVar = -1; //will be changed when called to exit the shell
 
 vector<string> createToken(string str)
 {
-  isstringstream ISS(str);
+  istringstream ISS(str);
   vector<string> tokens;
   string s;
   
@@ -50,96 +39,77 @@ vector<string> createToken(string str)
   return tokens;
 }
 
-void execute(vector<string> tokens) //sets if/else if/else cases for calling all available commands
+//returns true if there's an error relating to num of tokens
+bool errorCheck(vector<string>& tokens, unsigned int wanted)
 {
-  if (tokens.size() == 0)
-    return;
-  
-  string cmd = tokens[0];
-  
-  if (cmd = "setvar")
-  {
-    setVar(tokens);
-  }
-  else if (cmd = "setprompt")
-  {
-    changePrompt(tokens);
-  }
-  else if (cmd = "setdir")
-  {
-    setdir(tokens);
-  }
-  else if (cmd = "showprocs")
-  {
-    showProcesses(tokens);
-  }
-  else if (cmd = "#")
-  {
-    //comment function, doesn't need anything
-  }
-  else if (cmd = "done")
-  {
-    done(tokens);
-  }
-  else if (cmd = "run")
-  {
-    doRun(tokens, 0);
-  }
-  else if (cmd = "fly")
-  {
-    doFly(tokens);
-  }
-  else if (cmd = "tovar")
-  {
-    dotoVar(tokens);
-  }
-  else
-  {
-    fprintf(stderr, "%s is not a valid command.\n", cmd.c_str())
-  }
+    if (tokens.size() > wanted)
+    {
+        if (tokens[wanted] != "#")
+        {
+            fprintf(stderr, "Too many arguements for %s\n", tokens[0].c_str());
+            return true;
+        }
+    }
+    if (tokens.size() < wanted)
+    {
+        fprintf(stderr, "Too few arguements for %s\n", tokens[0].c_str());
+        return true;
+    }
+    for (unsigned int i = 1; i < wanted; i++)
+    {
+        if (tokens[i] == "#")
+        {
+            fprintf(stderr, "Too few arguements for %s\n", tokens[0].c_str());
+            return true;
+        }
+    }
+    return false;
 }
 
-void done(vector<string> tokens)
+
+void done(vector<string> &tokens)
 {
-  //change quitVar to 0 on no value
-  if (tokens.size() == 1)
-  {
-    if (errorCheck(tokens, 1)
-        return;
-    quitVar = 0;
-  }
-  else
-  {
-    if (errorCheck(tokens, 2)
-        return;
-    string val = tokens[1];
-    for(int i = 0; i < val.length(); i++)
+    //change quitVar to 0 on no value
+    if (tokens.size() == 1)
     {
-        if (isdigit(value[i]))
+        if (errorCheck(tokens, 1))
         {
+            return;
+            quitVar = 0;
         }
         else
         {
-          fprintf(stderr, "Values after done must consist only of numbers.\n");
-          return;
+            if (errorCheck(tokens, 2))
+                return;
+            string val = tokens[1];
+            for (unsigned int i = 0; i < val.length(); i++)
+            {
+                if (isdigit(val[i]))
+                {
+                }
+                else
+                {
+                    fprintf(stderr, "Values after done must consist only of numbers.\n");
+                    return;
+                }
+            }
+            quitVar = stoi(val);
         }
     }
-    quitVar = stoi(val);
-  }
 }
 
-void showProcesses(vector<string> tokens)
+void showProcesses(vector<string> &tokens)
 {
-  if (errorCheck(tokens, 1)
+  if (errorCheck(tokens, 1))
       return;
-  for (auto str: procs)
+  for (auto &str: processes)
   {
     printf("PROC: %s", str.c_str());
   }
 }
 
 //choice(0) = run, choice(1) = fly, choice(2) = toVar
-void doRun(vector<string> tokens, int choice)
+void doRun(vector<string> &tokens, int choice)
 {
   if (choice == 0)
   {
@@ -149,7 +119,7 @@ void doRun(vector<string> tokens, int choice)
       return;
     }
   }
-  for (int i = 0; i < tokens.size(); i++)
+  for (unsigned int i = 0; i < tokens.size(); i++)
   {
     if (tokens[i].substr(0, 1) == "^")
     {
@@ -165,7 +135,7 @@ void doRun(vector<string> tokens, int choice)
   {
     sizeDif = 2;
   }
-  for(int i = sizeDif; i < tokens.size(); i++)
+  for(unsigned int i = sizeDif; i < tokens.size(); i++)
   {
     arg[i-sizeDif] = const_cast<char*>(tokens[i].c_str());
   }
@@ -183,7 +153,7 @@ void doRun(vector<string> tokens, int choice)
   {
     if (choice == 3)
     {
-      variabless[tokens[1]] = execvp(arg[0], arg);
+      variables[tokens[1]] = execvp(arg[0], arg);
     }
     else
     {
@@ -196,37 +166,37 @@ void doRun(vector<string> tokens, int choice)
   if (pid != fork1 && choice == 1)
   {
     waitpid(pid, NULL, 0); 
-		string argsString = args[0];
-		for (int i = 1; i < (tokens.size() - 1); i++) 
+		string argsString = arg[0];
+		for (unsigned int i = 1; i < (tokens.size() - 1); i++) 
     {
-			argsString = argsString + " " + args[i];
+			argsString = argsString + " " + arg[i];
 		}
-    exit(1)
+        exit(1);
   }
   
-  if(which == 0) {
+  if(choice == 0) {
 		waitpid(pid, NULL, 0);
 	}
 }
       
-void doFly(vector<string> tokens)
+void doFly(vector<string> &tokens)
 {
   doRun(tokens, 1);
 }
       
-void dotoVar(vector<string> tokens)
+void dotoVar(vector<string> &tokens)
 {
   doRun(tokens, 3);
 }
       
-void setVar(vector<string> tokens)
+void setVar(vector<string> &tokens)
 {
-  if (errorCheck(tokens, 3)
+  if (errorCheck(tokens, 3))
       return;
   string var = tokens[1];
       
   //if first character in var isn't a letter
-  for (int i = 1; i < variable.length(); i++) 
+  for (unsigned int i = 1; i < variables.size(); i++) 
   {
 		if (isalpha(var[i]) || isdigit(var[i])) 
     {
@@ -240,13 +210,13 @@ void setVar(vector<string> tokens)
   
   string val = tokens[2];
 	if (var == "ShowTokens") {
-		showtokens = value;
+		showToken = val;
 	}
 	else
 		variables[var] = val;
 }
       
-int setdir(vector<string> tokens)
+int setdir(vector<string> &tokens)
 {
   if (errorCheck(tokens, 2))
   {
@@ -261,41 +231,66 @@ int setdir(vector<string> tokens)
 	return 0;
 }
       
-//returns true if there's an error relating to num of tokens
-bool errorCheck(vector<string> tokens, int wanted) 
-{
-	if (tokens.size() > wanted)
-  {
-		if (tokens[wanted] != "#")
-    {
-			fprintf(stderr,"Too many arguements for %s\n", tokens[0].c_str());
-			return true;
-		}
-	}
-	if (tokens.size() < wanted)
-  {
-		fprintf(stderr,"Too few arguements for %s\n", tokens[0].c_str());
-		return true;
-	}
-	for (int i = 1; i < wanted; i++)
-  {
-		if (tokens[i]=="#")
-    {
-			fprintf(stderr, "Too few arguements for %s\n", tokens[0].c_str());
-			return true;
-		}
-	}
-	return false;
-}
+
       
-void changeprompt(vector<string> tokens)
+void changePrompt(vector<string> &tokens)
 {
-	if (errorchecker(tokens, 2))
+	if (errorCheck(tokens, 2))
   {
 		return;
 	}
 	prompt = tokens[1];
 }
+
+void execute(vector<string>& tokens) //sets if/else if/else cases for calling all available commands
+{
+    if (tokens.size() == 0)
+        return;
+
+    string cmd = tokens[0];
+
+    if (cmd == "setvar")
+    {
+        setVar(tokens);
+    }
+    else if (cmd == "setprompt")
+    {
+        changePrompt(tokens);
+    }
+    else if (cmd == "setdir")
+    {
+        setdir(tokens);
+    }
+    else if (cmd == "showprocs")
+    {
+        showProcesses(tokens);
+    }
+    else if (cmd == "#")
+    {
+        //comment function, doesn't need anything
+    }
+    else if (cmd == "done")
+    {
+        done(tokens);
+    }
+    else if (cmd == "run")
+    {
+        doRun(tokens, 0);
+    }
+    else if (cmd == "fly")
+    {
+        doFly(tokens);
+    }
+    else if (cmd == "tovar")
+    {
+        dotoVar(tokens);
+    }
+    else
+    {
+        fprintf(stderr, "%s is not a valid command.\n", cmd.c_str());
+    }
+}
+
       
 int main()
 {
@@ -307,13 +302,13 @@ int main()
   {
 		cout << prompt;
 		getline(cin, cmd);
-		vector<string> tokens = createtokens(cmd);
+		vector<string> tokens = createToken(cmd);
 		execute(tokens);
 		if (quitVar > -1)
     {
 			return quitVar;
 		}
-		if (showtokens == "1")
+		if (showToken == "1")
     {
 			for (auto& str : tokens)
       {
